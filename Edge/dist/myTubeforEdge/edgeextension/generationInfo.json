@@ -1,0 +1,9 @@
+{
+    "generationTool": "manifoldjs",
+    "generationToolVersion": "0.7.6",
+    "platformId": "edgeextension",
+    "platformPackage": "manifoldjs-edgeextension",
+    "platformVersion": "0.1.8",
+    "generatedFrom": "CLI",
+    "generationDate": "2018-08-02 10:16:20 Z"
+}
