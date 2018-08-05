@@ -9,6 +9,7 @@ let enabled;
 function checkUrl(url, tabId) {
     getStoredStatus(enabled => {
         if (youtube_parser(url) !== false && enabled) {
+            pauseVideoDB();
             chrome.tabs.executeScript(tabId, {
                 code: `document.getElementsByTagName('video')[0].pause();`
             });
@@ -17,10 +18,17 @@ function checkUrl(url, tabId) {
             }, function(tab) {
                 setTimeout(() => {
                     chrome.tabs.remove(tab.id);
-                    
                 }, 500);
             });
         }
+    });
+}
+
+function pauseVideo(tabId) {
+    console.log('Pausing');
+    chrome.tabs.executeScript(tabId, {
+        // Double pausing here because it doesn't work on page refresh otherwise. pause() doesn't play the video so this is fine.
+        code: `document.getElementsByTagName('video')[0].pause();document.getElementsByTagName('video')[0].pause();`
     });
 }
 
@@ -39,7 +47,8 @@ function debounce(func, wait, immediate) {
     };
 };
 
-checkUrlDB = debounce(checkUrl, 5000);
+checkUrlDB = debounce(checkUrl, 1000);
+let pauseVideoDB = debounce(pauseVideo, 1000)
 
 var filter = {
     url:

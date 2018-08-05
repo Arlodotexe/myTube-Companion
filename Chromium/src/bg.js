@@ -9,18 +9,25 @@ let enabled;
 function checkUrl(url, tabId) {
     getStoredStatus(enabled => {
         if (youtube_parser(url) !== false && enabled) {
-            chrome.tabs.executeScript(tabId, {
-                code: `document.getElementsByTagName('video')[0].pause();`
-            });
-            chrome.tabs.create({
-                url: 'rykentube:Video?ID=' + youtube_parser(url),
-            }, function(tab) {
-                setTimeout(() => {
-                    chrome.tabs.remove(tab.id);
-                    
-                }, 500);
-            });
+            pauseVideoDB(tabId);
+            setTimeout(() => {
+                chrome.tabs.create({
+                    url: 'rykentube:Video?ID=' + youtube_parser(url),
+                }, function(tab) {
+                    setTimeout(() => {
+                        chrome.tabs.remove(tab.id);
+                    }, 500);
+                });
+            }, 500);
         }
+    });
+}
+
+function pauseVideo(tabId) {
+    console.log('Pausing');
+    chrome.tabs.executeScript(tabId, {
+        // Double pausing here because it doesn't work on page refresh otherwise. pause() doesn't play the video so this is fine.
+        code: `document.getElementsByTagName('video')[0].pause();document.getElementsByTagName('video')[0].pause();`
     });
 }
 
@@ -39,7 +46,8 @@ function debounce(func, wait, immediate) {
     };
 };
 
-checkUrlDB = debounce(checkUrl, 5000);
+checkUrlDB = debounce(checkUrl, 1000);
+let pauseVideoDB = debounce(pauseVideo, 1000)
 
 var filter = {
     url:
@@ -65,7 +73,7 @@ function getStoredStatus(cb) {
 }
 
 chrome.webNavigation.onBeforeNavigate.addListener((result) => {
-    if (result.url) {
+    if (result.url && result.tabId) {
         checkUrl(result.url, result.tabId);
     }
 }, filter);
