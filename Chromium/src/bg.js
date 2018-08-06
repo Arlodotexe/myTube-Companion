@@ -6,9 +6,9 @@ function youtube_parser(url) {
 
 let enabled;
 
-function checkUrl(url, tabId) {
+function checkUrl(url, tabId, bypass) {
     getStoredStatus(enabled => {
-        if (youtube_parser(url) !== false && enabled) {
+        if (youtube_parser(url) !== false && bypass !== true && enabled) {
             pauseVideoDB(tabId);
             setTimeout(() => {
                 chrome.tabs.create({
@@ -49,12 +49,6 @@ function debounce(func, wait, immediate) {
 checkUrlDB = debounce(checkUrl, 1000);
 let pauseVideoDB = debounce(pauseVideo, 1000)
 
-var filter = {
-    url:
-        [
-            { hostContains: "youtube" }
-        ]
-}
 
 function setStoredStatus(status) {
     if (chrome && chrome.storage && chrome.storage.local) {
@@ -73,10 +67,14 @@ function getStoredStatus(cb) {
 }
 
 chrome.webNavigation.onBeforeNavigate.addListener((result) => {
-    if (result.url && result.tabId) {
+    if (result.url && result.tabId && result.url && youtube_parser(result.url) !== false) {
         checkUrl(result.url, result.tabId);
     }
-}, filter);
+}, {
+        url:
+            [{ hostContains: "youtube" }]
+    }
+);
 
 chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
     if (changeInfo.url && changeInfo.url.includes('rykentube:')) {
@@ -84,7 +82,8 @@ chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
             chrome.tabs.remove(tabId);
         }, 1000);
     }
-    if (changeInfo !== undefined && changeInfo.status == "loading" && changeInfo.url !== undefined && enabled) {
+    console.log(JSON.stringify  (changeInfo));
+    if (changeInfo !== undefined && changeInfo.url !== undefined && changeInfo.status == "loading" && youtube_parser(changeInfo.url) !== false && enabled) {
         checkUrlDB(changeInfo.url, tabId);
     }
 });
@@ -93,8 +92,15 @@ chrome.runtime.onMessage.addListener(function(request) {
     if (request.changeState !== undefined) {
         setStoredStatus(request.changeState);
     }
+    if (request.pauseVideo !== undefined) {
+        pauseVideo(request.tabId);
+    }
+
+    if (request.checkUrl !== undefined) {
+        checkUrl(request.checkUrl, request.tabId, true)
+    }
 });
 
 getStoredStatus(result => {
     enabled = result;
-})
+});
