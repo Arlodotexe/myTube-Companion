@@ -24,10 +24,12 @@ function checkUrl(url, tabId, bypass) {
 }
 
 function pauseVideo(tabId) {
-    console.log('Pausing');
+    console.debug('Pausing');
     chrome.tabs.executeScript(tabId, {
-        // Double pausing here because it doesn't work on page refresh otherwise. pause() doesn't play the video so this is fine.
-        code: `document.getElementsByTagName('video')[0].pause();document.getElementsByTagName('video')[0].pause();`
+        // Wait a bit for the video controls to load before pausing
+        code: `setTimeout(()=>{
+            document.getElementsByTagName('video')[0].pause();
+        }, 500);`
     });
 }
 
@@ -66,25 +68,31 @@ function getStoredStatus(cb) {
     })
 }
 
-chrome.webNavigation.onBeforeNavigate.addListener((result) => {
-    if (result.url && result.tabId && result.url && youtube_parser(result.url) !== false) {
-        checkUrl(result.url, result.tabId);
-    }
-}, {
-        url:
-            [{ hostContains: "youtube" }]
-    }
-);
+if (chrome && chrome.webNavigation !== undefined && chrome.webNavigation.onBeforeNavigate !== undefined) {
+    chrome.webNavigation.onBeforeNavigate.addListener((result) => {
+        console.debug(JSON.stringify(result))
+        if (result !== undefined && result.url !== undefined && result.tabId !== undefined) {
+            if (!(result.url.includes('autohide=') || result.url.includes('controls=') || result.url.includes('rel='))) {
+                checkUrlDB(result.url, result.tabId);
+            }
+        }
+    }, {
+            url: [{ hostContains: "youtube" }]
+        });
+}
 
-chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
-    if (changeInfo.url && changeInfo.url.includes('rykentube:')) {
+chrome.tabs.onUpdated.addListener(function(tabId, result, tab) {
+    if (result.url && result.url.includes('rykentube:')) {
         setTimeout(() => {
             chrome.tabs.remove(tabId);
         }, 1000);
     }
-    console.log(JSON.stringify  (changeInfo));
-    if (changeInfo !== undefined && changeInfo.url !== undefined && changeInfo.status == "loading" && youtube_parser(changeInfo.url) !== false && enabled) {
-        checkUrlDB(changeInfo.url, tabId);
+    console.debug(JSON.stringify(result))
+    if (result !== undefined && result.url !== undefined && result.status == "loading" && enabled) {
+        // Make sure we didn't grab an embedded video
+        if (!(result.url.includes('autohide=') || result.url.includes('controls=') || result.url.includes('rel='))) {
+            checkUrlDB(result.url, tabId);
+        }
     }
 });
 
