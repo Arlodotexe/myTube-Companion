@@ -11,12 +11,10 @@ function checkUrl(url, tabId, bypass) {
         if (youtube_parser(url) !== false && bypass !== true && enabled) {
             pauseVideoDB(tabId);
             setTimeout(() => {
-                chrome.tabs.create({
-                    url: 'rykentube:Video?ID=' + youtube_parser(url),
-                }, function(tab) {
-                    setTimeout(() => {
-                        chrome.tabs.remove(tab.id);
-                    }, 500);
+                chrome.tabs.executeScript(tabId, {
+                    code: `
+                        window.location.assign('rykentube:Video?ID=${youtube_parser(url)}');
+                    `
                 });
             }, 500);
         }
@@ -24,7 +22,6 @@ function checkUrl(url, tabId, bypass) {
 }
 
 function pauseVideo(tabId) {
-    console.debug('Pausing');
     chrome.tabs.executeScript(tabId, {
         // Wait a bit for the video controls to load before pausing
         code: `setTimeout(()=>{
@@ -70,7 +67,6 @@ function getStoredStatus(cb) {
 
 if (chrome && chrome.webNavigation !== undefined && chrome.webNavigation.onBeforeNavigate !== undefined) {
     chrome.webNavigation.onBeforeNavigate.addListener((result) => {
-        console.debug(JSON.stringify(result))
         if (result !== undefined && result.url !== undefined && result.tabId !== undefined) {
             if (!(result.url.includes('autohide=') || result.url.includes('controls=') || result.url.includes('rel='))) {
                 checkUrlDB(result.url, result.tabId);
@@ -87,7 +83,6 @@ chrome.tabs.onUpdated.addListener(function(tabId, result, tab) {
             chrome.tabs.remove(tabId);
         }, 1000);
     }
-    console.debug(JSON.stringify(result))
     if (result !== undefined && result.url !== undefined && result.status == "loading" && enabled) {
         // Make sure we didn't grab an embedded video
         if (!(result.url.includes('autohide=') || result.url.includes('controls=') || result.url.includes('rel='))) {

@@ -10,14 +10,11 @@ function checkUrl(url, tabId, bypass) {
   getStoredStatus(enabled => {
     if (youtube_parser(url) !== false && (enabled || bypass)) {
       pauseVideoDB();
-      browser.tabs.create({
-        url: 'rykentube:Video?ID=' + youtube_parser(url),
-      })
-        .then(function(tab) {
-          setTimeout(() => {
-            browser.tabs.remove(tab.id);
-          }, 500);
-        });
+      chrome.tabs.executeScript(tabId, {
+        code: `
+            window.location.assign('rykentube:Video?ID=${youtube_parser(url)}');
+        `
+      });
     }
   });
 }
@@ -25,15 +22,16 @@ function checkUrl(url, tabId, bypass) {
 function pauseVideo(tabId) {
   console.log('Pausing');
   chrome.tabs.executeScript(tabId, {
-      // Double pausing here because it doesn't work on page refresh otherwise. pause() doesn't play the video so this is fine.
-      code: `document.getElementsByTagName('video')[0].pause();document.getElementsByTagName('video')[0].pause();`
-  });
+    // Wait a bit for the video controls to load before pausing
+    code: `setTimeout(()=>{
+          document.getElementsByTagName('video')[0].pause();
+      }, 500);`  });
 }
 
 function checkCurrentTab() {
   browser.tabs.query({ active: true })
     .then(function(tab) {
-        checkUrl(tab[0].url, tab[0].id, true);
+      checkUrl(tab[0].url, tab[0].id, true);
     });
 }
 
@@ -119,4 +117,4 @@ chrome.runtime.onMessage.addListener(function(request) {
 
 getStoredStatus(result => {
   enabled = result;
-})
+});
