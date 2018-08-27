@@ -22,17 +22,29 @@ function youtube_parser(url) {
 function checkUrl(url, tabId, bypass) {
     getStoredStatus(enabled => {
         if (youtube_parser(url) !== false && (enabled || bypass)) {
-            browser.tabs.create({
+            chrome.tabs.create({
                 url: 'rykentube:Video?ID=' + youtube_parser(url),
             }, function(tab) {
+                chrome.tabs.remove(tab.id);
                 setTimeout(() => {
+
                     if (tabId) {
-                        browser.tabs.executeScript(tabId, {
+                        chrome.tabs.executeScript(tabId, {
                             code: `document.getElementsByTagName('video')[0].pause();`
                         });
                     }
                 }, 500);
             });
+        }
+    });
+}
+
+function checkCurrentTab() {
+    chrome.tabs.getSelected(null, function(tab) {
+        if (youtube_parser(tab.url) !== false) {
+            checkUrl(tab.url, tab.id, true);
+        } else {
+            console.log('Not a YouTube link!');
         }
     });
 }
@@ -52,7 +64,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     document.getElementById('openInMyTube').addEventListener('click', () => {
-        chrome.runtime.sendMessage({ check: 'currentTab' });
+        checkCurrentTab();
     });
 });
 

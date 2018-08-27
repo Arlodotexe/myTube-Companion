@@ -1,18 +1,24 @@
 {
-    "name": "myTube! for Edge",
+    "name": "myTube! Companion",
+    "short_name": "myTube! Companion",
     "author": "Arlo Godfrey",
-    "version": "0.0.1",
+    "version": "0.1.5",
     "manifest_version": 2,
-    "description": "Open YouTube links in myTube!",
+    "description": "Redirect YouTube links to the myTube! Windows 10 app",
     "permissions": [
         "<all_urls>",
         "webNavigation",
-        "tabs"
+        "tabs",
+        "storage"
     ],
     "icons": {
-        "48": "assets/Square48x48LogoLight.png",
+        "48": "assets/Square48x48Logo.png",
         "128": "assets/Square128x128Logo.png"
     },
+    "browser_action": {
+        "default_icon": "/assets/BrowserAction.png",
+        "default_popup": "popup.html"
+    },  
     "content_scripts": [
         {
             "matches": [
