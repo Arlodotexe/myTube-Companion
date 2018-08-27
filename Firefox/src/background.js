@@ -4,12 +4,13 @@ function youtube_parser(url) {
   return (match && match[7].length == 11) ? match[7] : false;
 }
 
-let enabled;
+let enabled, prevUrl;
 
 function checkUrl(url, tabId, bypass) {
   getStoredStatus(enabled => {
     if (youtube_parser(url) !== false && (enabled || bypass)) {
       pauseVideoDB();
+      prevUrl = url;
       chrome.tabs.executeScript(tabId, {
         code: `
             window.location.assign('rykentube:Video?ID=${youtube_parser(url)}');
@@ -101,7 +102,7 @@ browser.webNavigation.onBeforeNavigate.addListener((result) => {
 browser.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
   console.log('updated');
   console.log(JSON.stringify(changeInfo));
-  if (changeInfo !== undefined && changeInfo.status == "loading" && changeInfo.url !== undefined && youtube_parser(changeInfo.url) !== false && enabled) {
+  if (changeInfo !== undefined && changeInfo.status == "loading" && changeInfo.url !== undefined && result.url !== prevUrl && youtube_parser(changeInfo.url) !== false && enabled) {
     checkUrlDB(changeInfo.url, tabId);
   }
 });
