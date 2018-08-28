@@ -11,11 +11,28 @@ function checkUrl(url, tabId, bypass) {
     if (youtube_parser(url) !== false && (enabled || bypass)) {
       pauseVideoDB();
       prevUrl = url;
-      chrome.tabs.executeScript(tabId, {
-        code: `
-            window.location.assign('rykentube:Video?ID=${youtube_parser(url)}');
-        `
-      });
+      setTimeout(() => {
+        prevUrl = url;
+        chrome.tabs.executeScript(tabId, {
+          code: `
+                var toHHMMSS = function (secs) { 
+                     var seconds = parseInt(secs, 10);
+                     var hours   = Math.floor(seconds / 3600);
+                     var minutes = Math.floor((seconds - (hours * 3600)) / 60);
+                     var seconds = seconds - (hours * 3600) - (minutes * 60);
+     
+                     if (hours   < 10) {hours   = "0"+hours;}
+                     if (minutes < 10) {minutes = "0"+minutes;}
+                     if (seconds < 10) {seconds = "0"+seconds;}
+                     var time    = hours+':'+minutes+':'+seconds;
+                     return time;
+                 }
+
+                let time = toHHMMSS(Math.round(document.getElementsByTagName('video')[0].currentTime));
+                window.location.assign('rykentube:PlayVideo?ID=${youtube_parser(url)}&Position=' + time);
+            `
+        });
+      }, 500);
     }
   });
 }

@@ -4,17 +4,45 @@ function youtube_parser(url) {
     return (match && match[7].length == 11) ? match[7] : false;
 }
 
+function youtube_playlist_parser(url) {
+    var regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(list\=))([^#\&\?]*).*/;
+    var match = url.match(regExp);
+    return (match && match[6].length == 34) ? match[6] : false;
+}
+
 let enabled, prevUrl;
 
 function checkUrl(url, tabId, bypass) {
+    console.log(youtube_parser(url));
     getStoredStatus(enabled => {
         if (youtube_parser(url) !== false && bypass !== true && enabled) {
+            let rykentubeProtocol = `rykentube:PlayVideo?ID=${youtube_parser(url)}&Position=`;
             pauseVideoDB(tabId);
+
+            // Can't open videos if they are in a playlist now. Fix it! :D
+            // Also doesn't work when navigating around youtube? Hmmm
+            if (youtube_playlist_parser(url) !== false) {
+                rykentubeProtocol = `rykentube:PlayVideo?ID=${youtube_parser(url)}&PlaylistID=${youtube_playlist_parser(url)}&Position=`;
+            }
             setTimeout(() => {
                 prevUrl = url;
                 chrome.tabs.executeScript(tabId, {
                     code: `
-                        window.location.assign('rykentube:Video?ID=${youtube_parser(url)}');
+                        var toHHMMSS = function (secs) { 
+                             var seconds = parseInt(secs, 10);
+                             var hours   = Math.floor(seconds / 3600);
+                             var minutes = Math.floor((seconds - (hours * 3600)) / 60);
+                             var seconds = seconds - (hours * 3600) - (minutes * 60);
+             
+                             if (hours   < 10) {hours   = "0"+hours;}
+                             if (minutes < 10) {minutes = "0"+minutes;}
+                             if (seconds < 10) {seconds = "0"+seconds;}
+                             let time    = hours+':'+minutes+':'+seconds;
+                             return time;
+                         }
+
+                        let time = toHHMMSS(Math.round(document.getElementsByTagName('video')[0].currentTime));
+                        window.location.assign('${rykentubeProtocol}' + time);
                     `
                 });
             }, 500);

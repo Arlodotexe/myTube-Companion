@@ -17,7 +17,7 @@
     },
     "browser_action": {
         "default_icon": {
-            "{ENTER SIZE}": "/assets/BrowserAction.png"
+            "48": "/assets/BrowserAction.png"
         },
         "default_popup": "popup.html",
         "theme_icons": [
@@ -55,9 +55,5 @@
     "background": {
         "page": "background.html",
         "persistent": true
-    },
-    "-ms-preload": {
-        "backgroundScript": "backgroundScriptsAPIBridge.js",
-        "contentScript": "contentScriptsAPIBridge.js"
     }
 }

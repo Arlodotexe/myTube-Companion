@@ -22,19 +22,28 @@ function youtube_parser(url) {
 function checkUrl(url, tabId, bypass) {
     getStoredStatus(enabled => {
         if (youtube_parser(url) !== false && (enabled || bypass)) {
-            chrome.tabs.create({
-                url: 'rykentube:Video?ID=' + youtube_parser(url),
-            }, function(tab) {
-                chrome.tabs.remove(tab.id);
-                setTimeout(() => {
+            setTimeout(() => {
+                prevUrl = url;
+                chrome.tabs.executeScript(tabId, {
+                    code: `
+                        var toHHMMSS = function (secs) { 
+                             var seconds = parseInt(secs, 10);
+                             var hours   = Math.floor(seconds / 3600);
+                             var minutes = Math.floor((seconds - (hours * 3600)) / 60);
+                             var seconds = seconds - (hours * 3600) - (minutes * 60);
+             
+                             if (hours   < 10) {hours   = "0"+hours;}
+                             if (minutes < 10) {minutes = "0"+minutes;}
+                             if (seconds < 10) {seconds = "0"+seconds;}
+                             var time    = hours+':'+minutes+':'+seconds;
+                             return time;
+                         }
 
-                    if (tabId) {
-                        chrome.tabs.executeScript(tabId, {
-                            code: `document.getElementsByTagName('video')[0].pause();`
-                        });
-                    }
-                }, 500);
-            });
+                        let time = toHHMMSS(Math.round(document.getElementsByTagName('video')[0].currentTime));
+                        window.location.assign('rykentube:PlayVideo?ID=${youtube_parser(url)}&Position=' + time);
+                    `
+                });
+            }, 500);
         }
     });
 }
