@@ -2,7 +2,7 @@
     "name": "myTube! Companion",
     "short_name": "myTube! Companion",
     "author": "Arlo Godfrey",
-    "version": "0.1.5",
+    "version": "1.5.0",
     "manifest_version": 2,
     "description": "Redirect YouTube links to the myTube! Windows 10 app",
     "permissions": [
@@ -16,7 +16,9 @@
         "128": "assets/Square128x128Logo.png"
     },
     "browser_action": {
-        "default_icon": "/assets/BrowserAction.png",
+        "default_icon": {
+            "48": "/assets/BrowserAction.png"
+        },
         "default_popup": "popup.html"
     },  
     "content_scripts": [
