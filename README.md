@@ -1,14 +1,9 @@
 # myTube-Companion
 Redirect YouTube links to the myTube! Windows 10 app
 
-# Installing
-
-It's recommended that you install from the Web store corresponding to your browser:
-
 ## Firefox 
 
 https://addons.mozilla.org/en-US/firefox/addon/mytube-companion/
-
 
 ## Chrome/Opera 
 
