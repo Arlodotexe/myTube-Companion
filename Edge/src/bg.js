@@ -14,8 +14,23 @@ function checkUrl(url, tabId, bypass) {
                 prevUrl = url;
                 chrome.tabs.executeScript(tabId, {
                     code: `
-                        window.location.assign('rykentube:Video?ID=${youtube_parser(url)}');
-                    `
+                    var toHHMMSS = function (secs) { 
+                         var seconds = parseInt(secs, 10);
+                         var hours   = Math.floor(seconds / 3600);
+                         var minutes = Math.floor((seconds - (hours * 3600)) / 60);
+                         var seconds = seconds - (hours * 3600) - (minutes * 60);
+         
+                         if (hours   < 10) {hours   = "0"+hours;}
+                         if (minutes < 10) {minutes = "0"+minutes;}
+                         if (seconds < 10) {seconds = "0"+seconds;}
+                         var time    = hours+':'+minutes+':'+seconds;
+                         return time;
+                     }
+    
+                    time = toHHMMSS(Math.round(document.getElementsByTagName('video')[0].currentTime));
+                    let prevUrl = window.location.href;
+                    window.location.assign('rykentube:PlayVideo?ID=${youtube_parser(url)}&Position=' + time);
+                `
                 });
             }, 500);
         }
@@ -68,8 +83,9 @@ function getStoredStatus(cb) {
 
 if (chrome && chrome.webNavigation !== undefined && chrome.webNavigation.onBeforeNavigate !== undefined) {
     chrome.webNavigation.onBeforeNavigate.addListener((result) => {
+        console.log(JSON.stringify(result), window.location.href);
         if (result !== undefined && result.url !== undefined && result.tabId !== undefined) {
-            if (!(result.url.includes('autohide=') || result.url.includes('controls=') || result.url.includes('rel='))) {
+            if ((!result.url.includes('autohide=') && !result.url.includes('controls=') && !result.url.includes('rel=') && !result.url.includes('/embed/'))) {
                 checkUrlDB(result.url, result.tabId);
             }
         }
@@ -86,7 +102,7 @@ chrome.tabs.onUpdated.addListener(function(tabId, result, tab) {
     }
     if (result !== undefined && result.url !== undefined && result.status == "loading" && result.url !== prevUrl && enabled) {
         // Make sure we didn't grab an embedded video
-        if (!(result.url.includes('autohide=') || result.url.includes('controls=') || result.url.includes('rel='))) {
+        if ((!result.url.includes('autohide=') && !result.url.includes('controls=') && !result.url.includes('rel=') && !result.url.includes('/embed/'))) {
             checkUrlDB(result.url, tabId);
         }
     }

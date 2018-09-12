@@ -97,7 +97,7 @@ function getStoredStatus(cb) {
 if (chrome && chrome.webNavigation !== undefined && chrome.webNavigation.onBeforeNavigate !== undefined) {
     chrome.webNavigation.onBeforeNavigate.addListener((result) => {
         if (result !== undefined && result.url !== undefined && result.tabId !== undefined) {
-            if (!(result.url.includes('autohide=') || result.url.includes('controls=') || result.url.includes('rel='))) {
+            if ((!result.url.includes('autohide=') && !result.url.includes('controls=') && !result.url.includes('rel=') && !result.url.includes('/embed/'))) {
                 checkUrlDB(result.url, result.tabId);
             }
         }
@@ -114,7 +114,7 @@ chrome.tabs.onUpdated.addListener(function(tabId, result, tab) {
     }
     if (result !== undefined && result.url !== undefined && result.status == "loading" && result.url !== prevUrl && enabled) {
         // Make sure we didn't grab an embedded video
-        if (!(result.url.includes('autohide=') || result.url.includes('controls=') || result.url.includes('rel='))) {
+        if ((!result.url.includes('autohide=') && !result.url.includes('controls=') && !result.url.includes('rel=') && !result.url.includes('/embed/'))) {
             checkUrlDB(result.url, tabId);
         }
     }

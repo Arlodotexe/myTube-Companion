@@ -39,7 +39,7 @@ function checkUrl(url, tabId, bypass) {
                              return time;
                          }
 
-                        let time = toHHMMSS(Math.round(document.getElementsByTagName('video')[0].currentTime));
+                        time = toHHMMSS(Math.round(document.getElementsByTagName('video')[0].currentTime));
                         window.location.assign('rykentube:PlayVideo?ID=${youtube_parser(url)}&Position=' + time);
                     `
                 });

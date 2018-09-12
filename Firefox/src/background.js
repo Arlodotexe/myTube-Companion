@@ -28,7 +28,7 @@ function checkUrl(url, tabId, bypass) {
                      return time;
                  }
 
-                let time = toHHMMSS(Math.round(document.getElementsByTagName('video')[0].currentTime));
+                time = toHHMMSS(Math.round(document.getElementsByTagName('video')[0].currentTime));
                 window.location.assign('rykentube:PlayVideo?ID=${youtube_parser(url)}&Position=' + time);
             `
         });
@@ -110,16 +110,16 @@ browser.webNavigation.onBeforeNavigate.addListener((result) => {
   if (result.status == 'loading' && result.url && youtube_parser(result.url)) {
     getStoredStatus(enabled => {
       if (enabled) {
-        checkUrl(result.url, result.tabId);
+        if ((!result.url.includes('autohide=') && !result.url.includes('controls=') && !result.url.includes('rel=') && !result.url.includes('/embed/'))) {
+          checkUrl(result.url, result.tabId);
+        }
       }
     });
   }
 }, filter);
 
 browser.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
-  console.log('updated');
-  console.log(JSON.stringify(changeInfo));
-  if (changeInfo !== undefined && changeInfo.status == "loading" && changeInfo.url !== undefined && result.url !== prevUrl && youtube_parser(changeInfo.url) !== false && enabled) {
+  if ((!result.url.includes('autohide=') && !result.url.includes('controls=') && !result.url.includes('rel=') && !result.url.includes('/embed/'))) {
     checkUrlDB(changeInfo.url, tabId);
   }
 });
