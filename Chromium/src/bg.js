@@ -10,17 +10,14 @@ function youtube_playlist_parser(url) {
     return (match && match[6].length == 34) ? match[6] : false;
 }
 
-let enabled, prevUrl;
+let enabled, prevUrl, closeOnSwitch;
 
 function checkUrl(url, tabId, bypass) {
-    console.log(youtube_parser(url));
-    getStoredStatus(enabled => {
-        if (youtube_parser(url) !== false && bypass !== true && enabled) {
+    getStoredStatus('enabled', enabled => {
+        if ((youtube_parser(url) !== false || youtube_playlist_parser(url) !== false) && bypass !== true && enabled) {
             let rykentubeProtocol = `rykentube:PlayVideo?ID=${youtube_parser(url)}&Position=`;
             pauseVideoDB(tabId);
-
             // Can't open videos if they are in a playlist now. Fix it! :D
-            // Also doesn't work when navigating around youtube? Hmmm
             if (youtube_playlist_parser(url) !== false) {
                 rykentubeProtocol = `rykentube:PlayVideo?ID=${youtube_parser(url)}&PlaylistID=${youtube_playlist_parser(url)}&Position=`;
             }
@@ -41,10 +38,11 @@ function checkUrl(url, tabId, bypass) {
                              return time;
                          }
 
-                        let time = toHHMMSS(Math.round(document.getElementsByTagName('video')[0].currentTime));
+                        time = toHHMMSS(Math.round(document.getElementsByTagName('video')[0].currentTime));
                         window.location.assign('${rykentubeProtocol}' + time);
                     `
                 });
+                if (closeOnSwitch == true) chrome.tabs.remove(tabId);
             }, 500);
         }
     });
@@ -52,10 +50,21 @@ function checkUrl(url, tabId, bypass) {
 
 function pauseVideo(tabId) {
     chrome.tabs.executeScript(tabId, {
-        // Wait a bit for the video controls to load before pausing
-        code: `setTimeout(()=>{
-            document.getElementsByTagName('video')[0].pause();
-        }, 500);`
+        // Confirm that the video is playing and loaded before trying to pause it
+        code: `
+        function recursiveVideoCheck() {
+                let vid = document.getElementsByTagName('video')[0];
+                if(vid.currentTime > 0 && !vid.paused) {
+                    document.getElementsByTagName('video')[0].pause();
+                } else {
+                    setTimeout(()=>{
+                        recursiveVideoCheck();
+                    }, 200);
+                }
+        }
+            recursiveVideoCheck();
+            
+            `
     });
 }
 
@@ -74,31 +83,52 @@ function debounce(func, wait, immediate) {
     };
 };
 
-checkUrlDB = debounce(checkUrl, 1000);
+checkUrl = debounce(checkUrl, 1000);
 let pauseVideoDB = debounce(pauseVideo, 1000)
 
 
-function setStoredStatus(status) {
+function setStoredStatus(key, status) {
     if (chrome && chrome.storage && chrome.storage.local) {
-        enabled = status;
-        chrome.storage.local.set({ enabled: status });
+        if (key == 'enabled') enabled = status;
+        toSet = new Object();
+        toSet[key] = status;
+        chrome.storage.local.set(toSet);
     } else {
         console.error('Cannot access storage API. State cannot be saved');
     }
 }
 
-function getStoredStatus(cb) {
-    chrome.storage.local.get(["enabled"], result => {
-        if (result.enabled == undefined) setStoredStatus(true);
-        cb(result.enabled);
+function getStoredStatus(key, cb) {
+    chrome.storage.local.get([key], result => {
+        if (result == undefined) setStoredStatus(key, true);
+        cb(result[key]);
     })
 }
 
 if (chrome && chrome.webNavigation !== undefined && chrome.webNavigation.onBeforeNavigate !== undefined) {
     chrome.webNavigation.onBeforeNavigate.addListener((result) => {
+        if (result && result.url && !result.url.includes('chrome:')) {
+            chrome.tabs.executeScript(result.tabId, {
+                code: `
+                function youtube_parser(url) {
+                    var regExp = /^.*((youtu.be\\/)|(v\\/)|(\\/u\\/\\w\\/)|(embed\\/)|(watch\\?))\\??v?=?([^#\\&\\?]*).*/;
+                    var match = url.match(regExp);
+                    return (match && match[7].length == 11) ? match[7] : false;
+                }
+                
+                document.querySelectorAll('a').forEach(element => {
+                    if(youtube_parser(element.href) !== false) {
+                        element.href = 'rykentube:PlayVideo?ID=' + youtube_parser(element.href);
+                        element.target='';
+                    }
+                });
+                `
+            });
+        }
+
         if (result !== undefined && result.url !== undefined && result.tabId !== undefined) {
             if ((!result.url.includes('autohide=') && !result.url.includes('controls=') && !result.url.includes('rel=') && !result.url.includes('/embed/'))) {
-                checkUrlDB(result.url, result.tabId);
+                checkUrl(result.url, result.tabId);
             }
         }
     }, {
@@ -107,6 +137,25 @@ if (chrome && chrome.webNavigation !== undefined && chrome.webNavigation.onBefor
 }
 
 chrome.tabs.onUpdated.addListener(function(tabId, result, tab) {
+    if (result && result.url && !result.url.includes('chrome:')) {
+        chrome.tabs.executeScript(result.tabId, {
+            code: `
+            function youtube_parser(url) {
+                var regExp = /^.*((youtu.be\\/)|(v\\/)|(\\/u\\/\\w\\/)|(embed\\/)|(watch\\?))\\??v?=?([^#\\&\\?]*).*/;
+                var match = url.match(regExp);
+                return (match && match[7].length == 11) ? match[7] : false;
+            }
+            
+            document.querySelectorAll('a').forEach(element => {
+                if(youtube_parser(element.href) !== false) {
+                    element.href = 'rykentube:PlayVideo?ID=' + youtube_parser(element.href);
+                    element.target='';
+                }
+            });
+            `
+        });
+    }
+
     if (result.url && result.url.includes('rykentube:')) {
         setTimeout(() => {
             chrome.tabs.remove(tabId);
@@ -115,14 +164,14 @@ chrome.tabs.onUpdated.addListener(function(tabId, result, tab) {
     if (result !== undefined && result.url !== undefined && result.status == "loading" && result.url !== prevUrl && enabled) {
         // Make sure we didn't grab an embedded video
         if ((!result.url.includes('autohide=') && !result.url.includes('controls=') && !result.url.includes('rel=') && !result.url.includes('/embed/'))) {
-            checkUrlDB(result.url, tabId);
+            checkUrl(result.url, tabId);
         }
     }
 });
 
 chrome.runtime.onMessage.addListener(function(request) {
     if (request.changeState !== undefined) {
-        setStoredStatus(request.changeState);
+        setStoredStatus('enabled', request.changeState);
     }
     if (request.pauseVideo !== undefined) {
         pauseVideo(request.tabId);
@@ -131,8 +180,16 @@ chrome.runtime.onMessage.addListener(function(request) {
     if (request.checkUrl !== undefined) {
         checkUrl(request.checkUrl, request.tabId, true)
     }
+
+    if (request.closeOnSwitch !== undefined) {
+        setStoredStatus('closeOnSwitch', request.closeOnSwitch);
+    }
 });
 
-getStoredStatus(result => {
-    enabled = result;
+getStoredStatus('enabled', result => {
+    enabled = result.enabled;
+});
+
+getStoredStatus('closeOnSwitch', result => {
+    closeOnSwitch = result.closeOnSwitch;
 });

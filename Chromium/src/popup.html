@@ -12,12 +12,10 @@
             * {
                 margin: 0px;
                 background-color: #303030;
-                /*                 border: 1px solid white
- */
             }
 
             .logo {
-                margin: 0px;
+                margin: 10px;
             }
 
             body {
@@ -25,7 +23,7 @@
                 margin-bottom: 15px;
             }
 
-            #checkbox {
+            #options {
                 margin: 8px;
                 margin-top: -15px;
                 color: white;
@@ -68,6 +66,15 @@
                 width:35px;
             }
 
+            input {
+                padding-bottom: 16px;
+                
+            }
+
+            #onoff + span {
+                text-align: center; 
+            }
+
         </style>
     </head>
     <script src="popup.js"></script>
@@ -75,11 +82,16 @@
     <body>
         <img style="width:200px;" class="logo" src="assets/popup.png">
         <div id="controls">
-            <div id="checkbox">
+            <div id="options">
 
                 <label class="Form-label--tick" for="onoff">
                     <input name="onoff" class="Form-label-checkbox" type="checkbox" id="onoff">
-                    <span class="Form-label-text" >Companion <span id="status" style="user-select: none;"></span></span>
+                    <span class="Form-label-text" >Companion <span id="enabled" style="user-select: none;"></span></span>
+                </label>
+<br />
+                <label for="closeTab">
+                    <input name="closeTab" class="Form-label-checkbox" type="checkbox" id="closeTab">
+                    <span class="Form-label-text" style="font-size: 0.8rem">Close tab when switching</span>
                 </label>
 
             </div>

@@ -1,16 +1,19 @@
-function setStoredStatus(status) {
+function setStoredStatus(key, status) {
     if (chrome && chrome.storage && chrome.storage.local) {
-        chrome.storage.local.set({ enabled: status });
+        if (key == 'enabled') enabled = status;
+        toSet = new Object();
+        toSet[key] = status;
+        chrome.storage.local.set(toSet);
     } else {
         console.error('Cannot access storage API. State cannot be saved');
     }
 }
 
-function getStoredStatus(cb) {
-    chrome.storage.local.get(["enabled"], result => {
-        if (result.enabled == undefined) setStoredStatus(true);
-        cb(result.enabled);
-    });
+function getStoredStatus(key, cb) {
+    chrome.storage.local.get([key], result => {
+        if (result == undefined) setStoredStatus(key, true);
+        cb(result[key]);
+    })
 }
 
 function youtube_parser(url) {
@@ -20,7 +23,7 @@ function youtube_parser(url) {
 }
 
 function checkUrl(url, tabId, bypass) {
-    getStoredStatus(enabled => {
+    getStoredStatus('enabled', enabled => {
         if (youtube_parser(url) !== false && (enabled || bypass)) {
             setTimeout(() => {
                 prevUrl = url;
@@ -58,10 +61,16 @@ function checkCurrentTab() {
     });
 }
 
-getStoredStatus(result => {
-    document.getElementById('status').innerText = (result ? 'enabled ' : 'disabled');
+getStoredStatus('enabled', result => {
+    document.getElementById('enabled').innerText = (result ? 'enabled ' : 'disabled');
     if (result) {
         document.getElementById('onoff').checked = true;
+    }
+});
+
+getStoredStatus('closeOnSwitch', result => {
+    if (result) {
+        document.getElementById('closeTab').checked = true;
     }
 });
 
@@ -69,11 +78,17 @@ getStoredStatus(result => {
 document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('onoff').addEventListener('change', () => {
         chrome.runtime.sendMessage({ changeState: document.getElementById('onoff').checked });
-        document.getElementById('status').innerText = (document.getElementById('onoff').checked ? 'enabled ' : 'disabled');
+        document.getElementById('enabled').innerText = (document.getElementById('onoff').checked ? 'enabled ' : 'disabled');
+    });
+
+    document.getElementById('closeTab').addEventListener('change', () => {
+        chrome.runtime.sendMessage({ closeOnSwitch: document.getElementById('closeTab').checked });
     });
 
     document.getElementById('openInMyTube').addEventListener('click', () => {
         checkCurrentTab();
     });
+    if (navigator.appVersion.includes('Edge')) {
+        document.querySelector('#closeTab').parentElement.style.display = 'none';
+    } 
 });
-

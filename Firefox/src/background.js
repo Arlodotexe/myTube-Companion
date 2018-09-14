@@ -38,7 +38,6 @@ function checkUrl(url, tabId, bypass) {
 }
 
 function pauseVideo(tabId) {
-  console.log('Pausing');
   chrome.tabs.executeScript(tabId, {
     // Wait a bit for the video controls to load before pausing
     code: `setTimeout(()=>{
@@ -100,13 +99,29 @@ if (chrome && chrome.browserAction && chrome.browserAction.onClicked) {
   chrome.browserAction.onClicked.addListener(function(tab) {
     setStoredStatus(!enabled);
     enabled = !enabled;
-    console.log((enabled ? 'Enabled' : 'Disabled') + ' myTube integration');
   })
 } else {
   console.error('Cannot access chrome.browserAction.onClicked');
 }
 
 browser.webNavigation.onBeforeNavigate.addListener((result) => {
+  chrome.tabs.executeScript(result.tabId, {
+    code: `
+        function youtube_parser(url) {
+            var regExp = /^.*((youtu.be\\/)|(v\\/)|(\\/u\\/\\w\\/)|(embed\\/)|(watch\\?))\\??v?=?([^#\\&\\?]*).*/;
+            var match = url.match(regExp);
+            return (match && match[7].length == 11) ? match[7] : false;
+        }
+        
+        document.querySelectorAll('a').forEach(element => {
+            if(youtube_parser(element.href) !== false) {
+                element.href = 'rykentube:PlayVideo?ID=' + youtube_parser(element.href);
+                element.target='';
+            }
+        });
+        `
+  });
+
   if (result.status == 'loading' && result.url && youtube_parser(result.url)) {
     getStoredStatus(enabled => {
       if (enabled) {
@@ -119,6 +134,23 @@ browser.webNavigation.onBeforeNavigate.addListener((result) => {
 }, filter);
 
 browser.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
+  chrome.tabs.executeScript(result.tabId, {
+    code: `
+        function youtube_parser(url) {
+            var regExp = /^.*((youtu.be\\/)|(v\\/)|(\\/u\\/\\w\\/)|(embed\\/)|(watch\\?))\\??v?=?([^#\\&\\?]*).*/;
+            var match = url.match(regExp);
+            return (match && match[7].length == 11) ? match[7] : false;
+        }
+        
+        document.querySelectorAll('a').forEach(element => {
+            if(youtube_parser(element.href) !== false) {
+                element.href = 'rykentube:PlayVideo?ID=' + youtube_parser(element.href);
+                element.target='';
+            }
+        });
+        `
+  });
+
   if ((!result.url.includes('autohide=') && !result.url.includes('controls=') && !result.url.includes('rel=') && !result.url.includes('/embed/'))) {
     checkUrlDB(changeInfo.url, tabId);
   }

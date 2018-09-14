@@ -8,18 +8,6 @@ body, table, select, option, textarea, input {
     font-family: "Titillium Web"
 }
 
-/* html {
-    display: -webkit-flex;
-    display: flex;
-    height: 100%;
-    -webkit-align-items: center;
-    align-items: center;
-    -webkit-justify-content: center;
-    justify-content: center;
-    text-align: center
-} */
-
-
 p {
     margin: 0 0 2em
 }
@@ -56,17 +44,18 @@ p {
 .Form-title {
     display: block;
     font-weight: bold;
-    margin-bottom: .5em
+    margin-bottom: .5em;
 }
 
 .Form-label, .Form-label--tick {
-    display: block
+    display: block;
+    padding-bottom: 8px;
 }
 
 .Form-label--tick {
     position: relative;
     display: inline-block;
-    margin-left: 1em
+    margin-left: 1em;
 }
 
 .Form-label-radio, .Form-label-checkbox {
@@ -84,6 +73,7 @@ p {
 }
 
 .Form-label-radio+.Form-label-text::after, .Form-label-checkbox+.Form-label-text::after {
+    margin-left: 5px;
     font-size: .875em;
     display: inline-block;
     width: 1.75em;
@@ -94,12 +84,13 @@ p {
     content: "\00a0";
     color: white;
     background-clip: padding-box;
-    background-color: white;
+    background-color: black;
+    border-color: rgb(170, 170, 170) !important;
     text-align: center
 }
 
 .Form-label-radio+.Form-label-text:hover::after, .Form-label-checkbox+.Form-label-text:hover::after {
-    border-color: black !important;
+    border-color: #505050 !important;
     box-shadow: 0 0 0 0 black !important
 }
 
