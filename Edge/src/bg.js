@@ -47,7 +47,9 @@ if (!(chrome && chrome.tabs) && (browser && browser.tabs)) {
                         window.location.assign('${rykentubeProtocol}' + time);
                     `
                 });
-                if (closeOnSwitch == true) chrome.tabs.remove(tabId);
+                setTimeout(() => {
+                    if (closeOnSwitch == true) chrome.tabs.remove(tabId);
+                }, 100);
             }, 500);
         }
     });
@@ -94,7 +96,6 @@ if (!(chrome && chrome.tabs) && (browser && browser.tabs)) {
   
   checkUrl = debounce(checkUrl, 1000);
   let pauseVideoDB = debounce(pauseVideo, 1000)
-  
   
   function setStoredStatus(key, status) {
     if (chrome && chrome.storage && chrome.storage.local) {
@@ -181,6 +182,7 @@ chrome.tabs.onUpdated.addListener(function(tabId, result, tab) {
   chrome.runtime.onMessage.addListener(function(request) {
     if (request.changeState !== undefined) {
         setStoredStatus('enabled', request.changeState);
+        enabled = request.enabled;
     }
     if (request.pauseVideo !== undefined) {
         pauseVideo(request.tabId);
@@ -192,6 +194,7 @@ chrome.tabs.onUpdated.addListener(function(tabId, result, tab) {
   
     if (request.closeOnSwitch !== undefined) {
         setStoredStatus('closeOnSwitch', request.closeOnSwitch);
+        closeOnSwitch = request.closeOnSwitch;
     }
   });
   
