@@ -146,7 +146,7 @@ if (chrome && chrome.webNavigation !== undefined && chrome.webNavigation.onBefor
 }
 
 chrome.tabs.onUpdated.addListener(function(tabId, result, tab) {
-  if (result && result.status == "complete" && tabId !== undefined) {
+  if (result && (result.status == "complete" || result.status == "loading") && tabId !== undefined) {
       chrome.tabs.executeScript(tabId, {
           code: `
           function youtube_parser(url) {
