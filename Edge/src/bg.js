@@ -1,18 +1,23 @@
-function youtube_parser(url) {
+if (!(chrome && chrome.tabs) && (browser && browser.tabs)) {
+    // Replacing chrome.tabs with browser.tabs for Firefox / other browsers that may need it
+    chrome.tabs = browser.tabs;
+  }
+  
+  function youtube_parser(url) {
     var regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#\&\?]*).*/;
     var match = url.match(regExp);
     return (match && match[7].length == 11) ? match[7] : false;
-}
-
-function youtube_playlist_parser(url) {
+  }
+  
+  function youtube_playlist_parser(url) {
     var regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(list\=))([^#\&\?]*).*/;
     var match = url.match(regExp);
     return (match && match[6].length == 34) ? match[6] : false;
-}
-
-let enabled, prevUrl, closeOnSwitch;
-
-function checkUrl(url, tabId, bypass) {
+  }
+  
+  let enabled, prevUrl, closeOnSwitch;
+  
+  function checkUrl(url, tabId, bypass) {
     getStoredStatus('enabled', enabled => {
         if ((youtube_parser(url) !== false || youtube_playlist_parser(url) !== false) && bypass !== true && enabled) {
             let rykentubeProtocol = `rykentube:PlayVideo?ID=${youtube_parser(url)}&Position=`;
@@ -37,7 +42,7 @@ function checkUrl(url, tabId, bypass) {
                              let time    = hours+':'+minutes+':'+seconds;
                              return time;
                          }
-
+  
                         time = toHHMMSS(Math.round(document.getElementsByTagName('video')[0].currentTime));
                         window.location.assign('${rykentubeProtocol}' + time);
                     `
@@ -46,29 +51,33 @@ function checkUrl(url, tabId, bypass) {
             }, 500);
         }
     });
-}
-
-function pauseVideo(tabId) {
-    chrome.tabs.executeScript(tabId, {
-        // Confirm that the video is playing and loaded before trying to pause it
-        code: `
-        function recursiveVideoCheck() {
-                let vid = document.getElementsByTagName('video')[0];
-                if(vid.currentTime > 0 && !vid.paused) {
-                    document.getElementsByTagName('video')[0].pause();
-                } else {
-                    setTimeout(()=>{
-                        recursiveVideoCheck();
-                    }, 200);
+  }
+  
+  function pauseVideo(tabId) {
+    getStoredStatus('closeOnSwitch', closeOnSwitch => {
+        if (closeOnSwitch == false) {
+            chrome.tabs.executeScript(tabId, {
+                // Confirm that the video is playing and loaded before trying to pause it
+                code: `
+                function recursiveVideoCheck() {
+                    let vid = document.getElementsByTagName('video')[0];
+                    if(vid.currentTime > 0 && !vid.paused) {
+                        document.getElementsByTagName('video')[0].pause();
+                    } else {
+                        setTimeout(()=>{
+                            recursiveVideoCheck();
+                        }, 200);
+                    }
                 }
+                recursiveVideoCheck();
+                
+                `
+            });
         }
-            recursiveVideoCheck();
-            
-            `
     });
-}
-
-function debounce(func, wait, immediate) {
+  }
+  
+  function debounce(func, wait, immediate) {
     var timeout;
     return function() {
         var context = this, args = arguments;
@@ -81,13 +90,13 @@ function debounce(func, wait, immediate) {
         timeout = setTimeout(later, wait);
         if (callNow) func.apply(context, args);
     };
-};
-
-checkUrl = debounce(checkUrl, 1000);
-let pauseVideoDB = debounce(pauseVideo, 1000)
-
-
-function setStoredStatus(key, status) {
+  };
+  
+  checkUrl = debounce(checkUrl, 1000);
+  let pauseVideoDB = debounce(pauseVideo, 1000)
+  
+  
+  function setStoredStatus(key, status) {
     if (chrome && chrome.storage && chrome.storage.local) {
         if (key == 'enabled') enabled = status;
         toSet = new Object();
@@ -96,18 +105,18 @@ function setStoredStatus(key, status) {
     } else {
         console.error('Cannot access storage API. State cannot be saved');
     }
-}
-
-function getStoredStatus(key, cb) {
+  }
+  
+  function getStoredStatus(key, cb) {
     chrome.storage.local.get([key], result => {
         if (result == undefined) setStoredStatus(key, true);
         cb(result[key]);
     })
-}
-
-if (chrome && chrome.webNavigation !== undefined && chrome.webNavigation.onBeforeNavigate !== undefined) {
+  }
+  
+  if (chrome && chrome.webNavigation !== undefined && chrome.webNavigation.onBeforeNavigate !== undefined) {
     chrome.webNavigation.onBeforeNavigate.addListener((result) => {
-        if (result && result.url && !result.url.includes('chrome:')) {
+        if (result !== undefined && result.tabId !== undefined) {
             chrome.tabs.executeScript(result.tabId, {
                 code: `
                 function youtube_parser(url) {
@@ -125,7 +134,7 @@ if (chrome && chrome.webNavigation !== undefined && chrome.webNavigation.onBefor
                 `
             });
         }
-
+  
         if (result !== undefined && result.url !== undefined && result.tabId !== undefined) {
             if ((!result.url.includes('autohide=') && !result.url.includes('controls=') && !result.url.includes('rel=') && !result.url.includes('/embed/'))) {
                 checkUrl(result.url, result.tabId);
@@ -134,11 +143,11 @@ if (chrome && chrome.webNavigation !== undefined && chrome.webNavigation.onBefor
     }, {
             url: [{ hostContains: "youtube" }]
         });
-}
-
+  }
+  
 chrome.tabs.onUpdated.addListener(function(tabId, result, tab) {
-    if (result && result.url && !result.url.includes('chrome:')) {
-        chrome.tabs.executeScript(result.tabId, {
+    if (result && result.status == "complete" && tabId !== undefined) {
+        chrome.tabs.executeScript(tabId, {
             code: `
             function youtube_parser(url) {
                 var regExp = /^.*((youtu.be\\/)|(v\\/)|(\\/u\\/\\w\\/)|(embed\\/)|(watch\\?))\\??v?=?([^#\\&\\?]*).*/;
@@ -155,7 +164,7 @@ chrome.tabs.onUpdated.addListener(function(tabId, result, tab) {
             `
         });
     }
-
+  
     if (result.url && result.url.includes('rykentube:')) {
         setTimeout(() => {
             chrome.tabs.remove(tabId);
@@ -167,29 +176,33 @@ chrome.tabs.onUpdated.addListener(function(tabId, result, tab) {
             checkUrl(result.url, tabId);
         }
     }
-});
-
-chrome.runtime.onMessage.addListener(function(request) {
+  });
+  
+  chrome.runtime.onMessage.addListener(function(request) {
     if (request.changeState !== undefined) {
         setStoredStatus('enabled', request.changeState);
     }
     if (request.pauseVideo !== undefined) {
         pauseVideo(request.tabId);
     }
-
+  
     if (request.checkUrl !== undefined) {
         checkUrl(request.checkUrl, request.tabId, true)
     }
-
+  
     if (request.closeOnSwitch !== undefined) {
         setStoredStatus('closeOnSwitch', request.closeOnSwitch);
     }
+  });
+  
+  getStoredStatus('enabled', result => {
+    enabled = result;
+  });
+  
+  getStoredStatus('closeOnSwitch', result => {
+    closeOnSwitch = result;
 });
-
-getStoredStatus('enabled', result => {
-    enabled = result.enabled;
-});
-
-getStoredStatus('closeOnSwitch', result => {
-    closeOnSwitch = result.closeOnSwitch;
-});
+  
+if (navigator.appVersion.includes('Edge')) {
+    setStoredStatus('closeOnSwitch', false);
+} 

@@ -21,6 +21,11 @@ function youtube_parser(url) {
     var match = url.match(regExp);
     return (match && match[7].length == 11) ? match[7] : false;
 }
+function youtube_playlist_parser(url) {
+    var regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(list\=))([^#\&\?]*).*/;
+    var match = url.match(regExp);
+    return (match && match[6].length == 34) ? match[6] : false;
+}
 
 function checkUrl(url, tabId, bypass) {
     getStoredStatus('enabled', enabled => {
@@ -52,8 +57,9 @@ function checkUrl(url, tabId, bypass) {
 }
 
 function checkCurrentTab() {
-    chrome.tabs.getSelected(null, function(tab) {
-        if (youtube_parser(tab.url) !== false) {
+    chrome.tabs.query({ currentWindow: true, active: true }, function(tab) {
+        tab = tab[0];
+        if (youtube_parser(tab.url) !== false || youtube_playlist_parser(tab.url) !== false) {
             checkUrl(tab.url, tab.id, true);
         } else {
             console.log('Not a YouTube link!');
