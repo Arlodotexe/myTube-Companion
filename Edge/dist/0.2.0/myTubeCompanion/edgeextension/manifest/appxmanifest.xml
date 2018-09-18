@@ -1,0 +1,56 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Package 
+	xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+	xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+	xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
+	IgnorableNamespaces="uap3">
+	<Identity 
+		Name="32357CharlesFecht.myTubeCompanion" 
+		Publisher="CN=096ED392-EC58-4D03-BD00-08354C0716AD" 
+		Version="2.0.0.0" /> <!-- UPDATE IDENTITY -->
+
+	<Properties> 
+		<DisplayName>myTube! Companion</DisplayName> 
+		<PublisherDisplayName>Arlo Godfrey</PublisherDisplayName> <!-- UPDATE PUBLISHER DISPLAY NAME -->
+		<Logo>Assets\StoreLogo.png</Logo> 
+	</Properties> 
+
+	<Dependencies> 
+		<TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.15063.0" MaxVersionTested="10.0.15063.0" />
+	</Dependencies> 
+
+	<Resources>
+		<Resource Language="en-us" />
+		<Resource uap:Scale="200"/>
+	</Resources> 
+
+	<Applications> 
+		<Application Id="App">
+			<uap:VisualElements
+				AppListEntry="none"
+				DisplayName="myTube! Companion"
+				Square150x150Logo="Assets\Square150x150Logo.png"
+        		Square44x44Logo="Assets\Square44x44Logo.png"
+				Description="Redirect YouTube links to the myTube! Windows 10 app"
+				BackgroundColor="transparent">
+			</uap:VisualElements>
+			<Extensions>
+				<uap3:Extension Category="windows.appExtension">
+					<uap3:AppExtension
+						Name="com.microsoft.edge.extension"
+						Id="EdgeExtension"
+						PublicFolder="Extension"
+						DisplayName="myTube! Companion">
+						<uap3:Properties>
+							<Capabilities>
+								<Capability Name="websiteContent"/>
+								<Capability Name="websiteInfo"/>
+								<Capability Name="browserStorage"/>
+							</Capabilities>
+						</uap3:Properties>
+					</uap3:AppExtension>
+				</uap3:Extension>
+			</Extensions>
+		</Application> 
+	</Applications>
+</Package>
