@@ -5,9 +5,9 @@ if (!(chrome && chrome.tabs) && (browser && browser.tabs)) {
 
 function youtube_parser(url, extractTime) {
     // This regex has no right to work. It has a bug disguised as a feature. But it works so I'm keeping it (for now)
-    var regExp = /^.*(?:youtu.be\/|v\/|\/u\/\w\/|embed\/|watch)(?:\??(?:v=)?|(?:time_continue=)?)(?:([^#\&\?]*).*)(?:\&?v=(.+))?/;
+    var regExp = /^.*(?:youtu.be\/|v\/|\/u\/\w\/|embed|watch)(?:\?|\/)(?:(?:v=|time_continue=)?(?:([^#\&\?]*)))?(?:\&v=(.*))?/;
     var match = url.match(regExp);
-    if (match && extractTime) match[1] = match[1].replace('time_continue=', '');
+    if (match && !isNaN(match[1]) && extractTime !== true) match[1] = match[2];
     return (match && match[1]) ? match[1] : false;
 }
 
@@ -31,10 +31,9 @@ function checkUrl(url, tabId, bypass) {
                 }
             }
             if (!isNaN(youtube_parser(url, true))) {
-                console.log(youtube_parser(url, true));
                 timeMethod = `time = toHHMMSS(${youtube_parser(url, true)})`;
             }
-            pauseVideoDB(tabId);
+            pauseVideo(tabId);
             setTimeout(() => {
                 prevUrl = url;
                 chrome.tabs.executeScript(tabId, {
@@ -70,20 +69,21 @@ function pauseVideo(tabId) {
             chrome.tabs.executeScript(tabId, {
                 // Confirm that the videos are playing and loaded before trying to pause it
                 code: `
-                window.addEventListener("load", function(event) {
-                    function recursiveVideoCheck() {
-                        document.querySelectorAll('video').forEach(vid => {
-                            if(vid.currentTime > 0 && !vid.paused) {
-                                document.getElementsByTagName('video')[0].pause();
-                            } else {
-                                setTimeout(()=>{
-                                    recursiveVideoCheck();
-                                }, 200);
-                            }
-                        });
-                    }
-                    recursiveVideoCheck();
+                function recursiveVideoCheck() {
+                    document.querySelectorAll('video').forEach(vid => {
+                        if(vid.currentTime > 0 && !vid.paused) {
+                           vid.pause();
+                        } else {
+                            setTimeout(()=>{
+                                recursiveVideoCheck();
+                            }, 200);
+                        }
+                    });
+                }
+                window.addEventListener("load", function(event) { 
+                    recursiveVideoCheck(); // For when it fires before the page is loaded
                 });
+                recursiveVideoCheck(); // For when it fires after the page is loaded
                 `
             });
         }
@@ -106,7 +106,7 @@ function debounce(func, wait, immediate) {
 };
 
 checkUrl = debounce(checkUrl, 1000);
-let pauseVideoDB = debounce(pauseVideo, 1000)
+pauseVideo = debounce(pauseVideo, 1000)
 
 function setStoredStatus(key, status) {
     if (chrome && chrome.storage && chrome.storage.local) {
