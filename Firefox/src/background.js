@@ -4,8 +4,7 @@ if (!(chrome && chrome.tabs) && (browser && browser.tabs)) {
 }
 
 function youtube_parser(url, extractTime) {
-    // This regex has no right to work. It has a bug disguised as a feature. But it works so I'm keeping it (for now)
-    var regExp = /^.*(?:youtu.be\/|v\/|\/u\/\w\/|embed|watch)(?:\?|\/)(?:(?:v=|time_continue=)?(?:([^#\&\?]*)))?(?:\&v=(.*))?/;
+    var regExp = /^.*(?:youtu.be\/|v\/|\/u\/\w\/|embed|watch)(?:\?|\/)(?:(?:v=|time_continue=)?(?:([^#\&\?]*)))?(?:\&v=(.*))?(?:.*)/;
     var match = url.match(regExp);
     if (match && !isNaN(match[1]) && extractTime !== true) match[1] = match[2];
     return (match && match[1]) ? match[1] : false;
@@ -24,7 +23,9 @@ function checkUrl(url, tabId, bypass) {
         if ((youtube_playlist_parser(url) !== false || youtube_parser(url) !== false) && bypass !== true && enabled) {
 
             let rykentubeProtocol = `rykentube:PlayVideo?ID=${youtube_parser(url)}&Position=`;
-            let timeMethod = `time = toHHMMSS(Math.round(document.getElementsByTagName('video')[0].currentTime));`;
+            let timeMethod = `
+            time = toHHMMSS(Math.round(document.getElementsByTagName('video')[0].currentTime));
+            `;
             if (youtube_playlist_parser(url) !== false) {
                 if (youtube_parser(url) !== false) {
                     rykentubeProtocol = `rykentube:PlayVideo?ID=${youtube_parser(url)}&PlaylistID=${youtube_playlist_parser(url)}&Position=`;
