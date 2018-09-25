@@ -13,13 +13,15 @@ function getStoredStatus(key, cb) {
     chrome.storage.local.get([key], result => {
         if (result == undefined) setStoredStatus(key, true);
         cb(result[key]);
-    })
+    });
 }
 
-function youtube_parser(url) {
-    var regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#\&\?]*).*/;
+function youtube_parser(url, extractTime) {
+    // This regex has no right to work. It has a bug disguised as a feature. But it works so I'm keeping it (for now)
+    var regExp = /^.*(?:youtu.be\/|v\/|\/u\/\w\/|embed\/|watch)[\?](?:(?:v=)?|(?:time_continue=)?)(?:([^#\&\?]*).*)(?:\&?v=(.+))/;
     var match = url.match(regExp);
-    return (match && match[7].length == 11) ? match[7] : false;
+    if (match && extractTime) match[2] = parseInt(match[1].replace(/[^0-9]/g, ''));
+    return (match && match[2]) ? match[2] : false;
 }
 function youtube_playlist_parser(url) {
     var regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(list\=))([^#\&\?]*).*/;
@@ -29,9 +31,10 @@ function youtube_playlist_parser(url) {
 
 function checkUrl(url, tabId, bypass) {
     getStoredStatus('enabled', enabled => {
-        if (youtube_parser(url) !== false && (enabled || bypass)) {
+        if ((youtube_parser(url) !== false || youtube_playlist_parser(url) !== false) && (enabled || bypass)) {
             setTimeout(() => {
                 prevUrl = url;
+                chrome.runtime.sendMessage({ pauseVideo: true, tabId: tabId });
                 chrome.tabs.executeScript(tabId, {
                     code: `
                         var toHHMMSS = function (secs) { 
@@ -62,7 +65,7 @@ function checkCurrentTab() {
         if (youtube_parser(tab.url) !== false || youtube_playlist_parser(tab.url) !== false) {
             checkUrl(tab.url, tab.id, true);
         } else {
-            console.log('Not a YouTube link!');
+            console.log('Not a YouTube link!\n', tab.url);
         }
     });
 }
@@ -96,5 +99,5 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     if (navigator.appVersion.includes('Edge')) {
         document.querySelector('#closeTab').parentElement.style.display = 'none';
-    } 
+    }
 });

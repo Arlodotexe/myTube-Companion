@@ -1,31 +1,39 @@
 if (!(chrome && chrome.tabs) && (browser && browser.tabs)) {
     // Replacing chrome.tabs with browser.tabs for Firefox / other browsers that may need it
     chrome.tabs = browser.tabs;
-  }
-  
-  function youtube_parser(url) {
-    var regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#\&\?]*).*/;
+}
+
+function youtube_parser(url, extractTime) {
+    // This regex has no right to work. It has a bug disguised as a feature. But it works so I'm keeping it (for now)
+    var regExp = /^.*(?:youtu.be\/|v\/|\/u\/\w\/|embed\/|watch)[\?](?:(?:v=)?|(?:time_continue=)?)(?:([^#\&\?]*).*)(?:\&?v=(.+))/;
     var match = url.match(regExp);
-    return (match && match[7].length == 11) ? match[7] : false;
-  }
-  
-  function youtube_playlist_parser(url) {
+    if (match && extractTime) match[2] = parseInt(match[1].replace(/[^0-9]/g, ''));
+    return (match && match[2]) ? match[2] : false;
+}
+
+function youtube_playlist_parser(url) {
     var regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(list\=))([^#\&\?]*).*/;
     var match = url.match(regExp);
     return (match && match[6].length == 34) ? match[6] : false;
-  }
-  
-  let enabled, prevUrl, closeOnSwitch;
-  
-  function checkUrl(url, tabId, bypass) {
+}
+
+let enabled, prevUrl, closeOnSwitch;
+
+function checkUrl(url, tabId, bypass) {
     getStoredStatus('enabled', enabled => {
-        if ((youtube_parser(url) !== false || youtube_playlist_parser(url) !== false) && bypass !== true && enabled) {
+        if ((youtube_playlist_parser(url) !== false || youtube_parser(url) !== false) && bypass !== true && enabled) {
+
             let rykentubeProtocol = `rykentube:PlayVideo?ID=${youtube_parser(url)}&Position=`;
-            pauseVideoDB(tabId);
-            // Can't open videos if they are in a playlist now. Fix it! :D
+            let timeMethod = `time = toHHMMSS(Math.round(document.getElementsByTagName('video')[0].currentTime));`;
             if (youtube_playlist_parser(url) !== false) {
-                rykentubeProtocol = `rykentube:PlayVideo?ID=${youtube_parser(url)}&PlaylistID=${youtube_playlist_parser(url)}&Position=`;
+                if (youtube_parser(url) !== false) {
+                    rykentubeProtocol = `rykentube:PlayVideo?ID=${youtube_parser(url)}&PlaylistID=${youtube_playlist_parser(url)}&Position=`;
+                }
             }
+            if (!isNaN(youtube_parser(url, true))) {
+                timeMethod = `time = toHHMMSS(${youtube_parser(url, true)})`;
+            }
+            pauseVideoDB(tabId);
             setTimeout(() => {
                 prevUrl = url;
                 chrome.tabs.executeScript(tabId, {
@@ -43,7 +51,7 @@ if (!(chrome && chrome.tabs) && (browser && browser.tabs)) {
                              return time;
                          }
   
-                        time = toHHMMSS(Math.round(document.getElementsByTagName('video')[0].currentTime));
+                        ${timeMethod}
                         window.location.assign('${rykentubeProtocol}' + time);
                     `
                 });
@@ -53,9 +61,9 @@ if (!(chrome && chrome.tabs) && (browser && browser.tabs)) {
             }, 500);
         }
     });
-  }
-  
-  function pauseVideo(tabId) {
+}
+
+function pauseVideo(tabId) {
     getStoredStatus('closeOnSwitch', closeOnSwitch => {
         if (closeOnSwitch == false) {
             chrome.tabs.executeScript(tabId, {
@@ -77,9 +85,9 @@ if (!(chrome && chrome.tabs) && (browser && browser.tabs)) {
             });
         }
     });
-  }
-  
-  function debounce(func, wait, immediate) {
+}
+
+function debounce(func, wait, immediate) {
     var timeout;
     return function() {
         var context = this, args = arguments;
@@ -92,12 +100,12 @@ if (!(chrome && chrome.tabs) && (browser && browser.tabs)) {
         timeout = setTimeout(later, wait);
         if (callNow) func.apply(context, args);
     };
-  };
-  
-  checkUrl = debounce(checkUrl, 1000);
-  let pauseVideoDB = debounce(pauseVideo, 1000)
-  
-  function setStoredStatus(key, status) {
+};
+
+checkUrl = debounce(checkUrl, 1000);
+let pauseVideoDB = debounce(pauseVideo, 1000)
+
+function setStoredStatus(key, status) {
     if (chrome && chrome.storage && chrome.storage.local) {
         if (key == 'enabled') enabled = status;
         toSet = new Object();
@@ -106,16 +114,16 @@ if (!(chrome && chrome.tabs) && (browser && browser.tabs)) {
     } else {
         console.error('Cannot access storage API. State cannot be saved');
     }
-  }
-  
-  function getStoredStatus(key, cb) {
+}
+
+function getStoredStatus(key, cb) {
     chrome.storage.local.get([key], result => {
         if (result == undefined) setStoredStatus(key, true);
         cb(result[key]);
     })
-  }
-  
-  if (chrome && chrome.webNavigation !== undefined && chrome.webNavigation.onBeforeNavigate !== undefined) {
+}
+
+if (chrome && chrome.webNavigation !== undefined && chrome.webNavigation.onBeforeNavigate !== undefined) {
     chrome.webNavigation.onBeforeNavigate.addListener((result) => {
         if (result !== undefined && result.tabId !== undefined) {
             chrome.tabs.executeScript(result.tabId, {
@@ -126,16 +134,22 @@ if (!(chrome && chrome.tabs) && (browser && browser.tabs)) {
                     return (match && match[7].length == 11) ? match[7] : false;
                 }
                 
-                document.querySelectorAll('a').forEach(element => {
-                    if(youtube_parser(element.href) !== false) {
-                        element.href = 'rykentube:PlayVideo?ID=' + youtube_parser(element.href);
-                        element.target='';
-                    }
-                });
+                function setLinks() {
+                    document.querySelectorAll('a').forEach(element => {
+                        if(youtube_parser(element.href) !== false) {
+                            element.setAttribute('onmousedown', '');
+                            element.setAttribute('data-cthref', 'rykentube:PlayVideo?ID=' + youtube_parser(element.href)); // Screw you, google
+                            element.setAttribute('href', 'rykentube:PlayVideo?ID=' + youtube_parser(element.href));
+                            element.target='';
+                        }
+                    });
+                }
+    
+                setInterval(setLinks, 1000);
                 `
             });
         }
-  
+
         if (result !== undefined && result.url !== undefined && result.tabId !== undefined) {
             if ((!result.url.includes('autohide=') && !result.url.includes('controls=') && !result.url.includes('rel=') && !result.url.includes('/embed/'))) {
                 checkUrl(result.url, result.tabId);
@@ -144,8 +158,8 @@ if (!(chrome && chrome.tabs) && (browser && browser.tabs)) {
     }, {
             url: [{ hostContains: "youtube" }]
         });
-  }
-  
+}
+
 chrome.tabs.onUpdated.addListener(function(tabId, result, tab) {
     if (result && (result.status == "complete" || result.status == "loading") && tabId !== undefined) {
         chrome.tabs.executeScript(tabId, {
@@ -156,16 +170,22 @@ chrome.tabs.onUpdated.addListener(function(tabId, result, tab) {
                 return (match && match[7].length == 11) ? match[7] : false;
             }
             
-            document.querySelectorAll('a').forEach(element => {
-                if(youtube_parser(element.href) !== false) {
-                    element.href = 'rykentube:PlayVideo?ID=' + youtube_parser(element.href);
-                    element.target='';
-                }
-            });
+            function setLinks() {
+                document.querySelectorAll('a').forEach(element => {
+                    if(youtube_parser(element.href) !== false) {
+                        element.setAttribute('onmousedown', '');
+                        element.setAttribute('data-cthref', 'rykentube:PlayVideo?ID=' + youtube_parser(element.href)); // Screw you, google
+                        element.setAttribute('href', 'rykentube:PlayVideo?ID=' + youtube_parser(element.href));
+                        element.target='';
+                    }
+                });
+            }
+
+            setInterval(setLinks, 1000);
             `
         });
     }
-  
+
     if (result.url && result.url.includes('rykentube:')) {
         setTimeout(() => {
             chrome.tabs.remove(tabId);
@@ -177,9 +197,9 @@ chrome.tabs.onUpdated.addListener(function(tabId, result, tab) {
             checkUrl(result.url, tabId);
         }
     }
-  });
-  
-  chrome.runtime.onMessage.addListener(function(request) {
+});
+
+chrome.runtime.onMessage.addListener(function(request) {
     if (request.changeState !== undefined) {
         setStoredStatus('enabled', request.changeState);
         enabled = request.enabled;
@@ -187,25 +207,25 @@ chrome.tabs.onUpdated.addListener(function(tabId, result, tab) {
     if (request.pauseVideo !== undefined) {
         pauseVideo(request.tabId);
     }
-  
+
     if (request.checkUrl !== undefined) {
         checkUrl(request.checkUrl, request.tabId, true)
     }
-  
+
     if (request.closeOnSwitch !== undefined) {
         setStoredStatus('closeOnSwitch', request.closeOnSwitch);
         closeOnSwitch = request.closeOnSwitch;
     }
-  });
-  
-  getStoredStatus('enabled', result => {
+});
+
+getStoredStatus('enabled', result => {
     enabled = result;
-  });
-  
-  getStoredStatus('closeOnSwitch', result => {
+});
+
+getStoredStatus('closeOnSwitch', result => {
     closeOnSwitch = result;
 });
-  
+
 if (navigator.appVersion.includes('Edge')) {
     setStoredStatus('closeOnSwitch', false);
 } 
