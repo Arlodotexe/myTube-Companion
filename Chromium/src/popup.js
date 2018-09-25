@@ -18,7 +18,7 @@ function getStoredStatus(key, cb) {
 
 function youtube_parser(url, extractTime) {
     // This regex has no right to work. It has a bug disguised as a feature. But it works so I'm keeping it (for now)
-    var regExp = /^.*(?:youtu.be\/|v\/|\/u\/\w\/|embed\/|watch)[\?](?:(?:v=)?|(?:time_continue=)?)(?:([^#\&\?]*).*)(?:\&?v=(.+))/;
+    var regExp = /^.*(?:youtu.be\/|v\/|\/u\/\w\/|embed\/|watch)(?:(?:\?v=)?|(?:\?time_continue=)?)(?:([^#\&\?]*).*)(?:\&?v=(.+))?/;
     var match = url.match(regExp);
     if (match && extractTime) match[2] = parseInt(match[1].replace(/[^0-9]/g, ''));
     return (match && match[2]) ? match[2] : false;

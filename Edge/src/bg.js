@@ -5,10 +5,10 @@ if (!(chrome && chrome.tabs) && (browser && browser.tabs)) {
 
 function youtube_parser(url, extractTime) {
     // This regex has no right to work. It has a bug disguised as a feature. But it works so I'm keeping it (for now)
-    var regExp = /^.*(?:youtu.be\/|v\/|\/u\/\w\/|embed\/|watch)[\?](?:(?:v=)?|(?:time_continue=)?)(?:([^#\&\?]*).*)(?:\&?v=(.+))/;
+    var regExp = /^.*(?:youtu.be\/|v\/|\/u\/\w\/|embed\/|watch)(?:\??(?:v=)?|(?:time_continue=)?)(?:([^#\&\?]*).*)(?:\&?v=(.+))?/;
     var match = url.match(regExp);
-    if (match && extractTime) match[2] = parseInt(match[1].replace(/[^0-9]/g, ''));
-    return (match && match[2]) ? match[2] : false;
+    if (match && extractTime) match[1] = match[1].replace('time_continue=', '');
+    return (match && match[1]) ? match[1] : false;
 }
 
 function youtube_playlist_parser(url) {
@@ -31,6 +31,7 @@ function checkUrl(url, tabId, bypass) {
                 }
             }
             if (!isNaN(youtube_parser(url, true))) {
+                console.log(youtube_parser(url, true));
                 timeMethod = `time = toHHMMSS(${youtube_parser(url, true)})`;
             }
             pauseVideoDB(tabId);
@@ -67,20 +68,22 @@ function pauseVideo(tabId) {
     getStoredStatus('closeOnSwitch', closeOnSwitch => {
         if (closeOnSwitch == false) {
             chrome.tabs.executeScript(tabId, {
-                // Confirm that the video is playing and loaded before trying to pause it
+                // Confirm that the videos are playing and loaded before trying to pause it
                 code: `
-                function recursiveVideoCheck() {
-                    let vid = document.getElementsByTagName('video')[0];
-                    if(vid.currentTime > 0 && !vid.paused) {
-                        document.getElementsByTagName('video')[0].pause();
-                    } else {
-                        setTimeout(()=>{
-                            recursiveVideoCheck();
-                        }, 200);
+                window.addEventListener("load", function(event) {
+                    function recursiveVideoCheck() {
+                        document.querySelectorAll('video').forEach(vid => {
+                            if(vid.currentTime > 0 && !vid.paused) {
+                                document.getElementsByTagName('video')[0].pause();
+                            } else {
+                                setTimeout(()=>{
+                                    recursiveVideoCheck();
+                                }, 200);
+                            }
+                        });
                     }
-                }
-                recursiveVideoCheck();
-                
+                    recursiveVideoCheck();
+                });
                 `
             });
         }
@@ -128,17 +131,13 @@ if (chrome && chrome.webNavigation !== undefined && chrome.webNavigation.onBefor
         if (result !== undefined && result.tabId !== undefined) {
             chrome.tabs.executeScript(result.tabId, {
                 code: `
-                function youtube_parser(url) {
-                    var regExp = /^.*((youtu.be\\/)|(v\\/)|(\\/u\\/\\w\\/)|(embed\\/)|(watch\\?))\\??v?=?([^#\\&\\?]*).*/;
-                    var match = url.match(regExp);
-                    return (match && match[7].length == 11) ? match[7] : false;
-                }
+                ${youtube_parser.toString()}
                 
                 function setLinks() {
                     document.querySelectorAll('a').forEach(element => {
                         if(youtube_parser(element.href) !== false) {
                             element.setAttribute('onmousedown', '');
-                            element.setAttribute('data-cthref', 'rykentube:PlayVideo?ID=' + youtube_parser(element.href)); // Screw you, google
+                            element.setAttribute('data-cthref', 'rykentube:PlayVideo?ID=' + youtube_parser(element.href));
                             element.setAttribute('href', 'rykentube:PlayVideo?ID=' + youtube_parser(element.href));
                             element.target='';
                         }
@@ -151,7 +150,7 @@ if (chrome && chrome.webNavigation !== undefined && chrome.webNavigation.onBefor
         }
 
         if (result !== undefined && result.url !== undefined && result.tabId !== undefined) {
-            if ((!result.url.includes('autohide=') && !result.url.includes('controls=') && !result.url.includes('rel=') && !result.url.includes('/embed/'))) {
+            if ((result.url.includes('/embed/') && result.url.includes('autoplay=1')) || !result.url.includes('/embed/')) {
                 checkUrl(result.url, result.tabId);
             }
         }
@@ -164,17 +163,13 @@ chrome.tabs.onUpdated.addListener(function(tabId, result, tab) {
     if (result && (result.status == "complete" || result.status == "loading") && tabId !== undefined) {
         chrome.tabs.executeScript(tabId, {
             code: `
-            function youtube_parser(url) {
-                var regExp = /^.*((youtu.be\\/)|(v\\/)|(\\/u\\/\\w\\/)|(embed\\/)|(watch\\?))\\??v?=?([^#\\&\\?]*).*/;
-                var match = url.match(regExp);
-                return (match && match[7].length == 11) ? match[7] : false;
-            }
+            ${youtube_parser.toString()}
             
             function setLinks() {
                 document.querySelectorAll('a').forEach(element => {
                     if(youtube_parser(element.href) !== false) {
                         element.setAttribute('onmousedown', '');
-                        element.setAttribute('data-cthref', 'rykentube:PlayVideo?ID=' + youtube_parser(element.href)); // Screw you, google
+                        element.setAttribute('data-cthref', 'rykentube:PlayVideo?ID=' + youtube_parser(element.href));
                         element.setAttribute('href', 'rykentube:PlayVideo?ID=' + youtube_parser(element.href));
                         element.target='';
                     }
@@ -193,7 +188,7 @@ chrome.tabs.onUpdated.addListener(function(tabId, result, tab) {
     }
     if (result !== undefined && result.url !== undefined && result.status == "loading" && result.url !== prevUrl && enabled) {
         // Make sure we didn't grab an embedded video
-        if ((!result.url.includes('autohide=') && !result.url.includes('controls=') && !result.url.includes('rel=') && !result.url.includes('/embed/'))) {
+        if ((result.url.includes('/embed/') && result.url.includes('autoplay=1')) || !result.url.includes('/embed/')) {
             checkUrl(result.url, tabId);
         }
     }
