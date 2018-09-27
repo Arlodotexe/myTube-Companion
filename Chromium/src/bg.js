@@ -4,7 +4,7 @@ if (!(chrome && chrome.tabs) && (browser && browser.tabs)) {
 }
 
 function youtube_parser(url, extractTime) {
-    var regExp = /^.*(?:youtu.be\/|v\/|\/u\/\w\/|embed|watch)(?:\?|\/)(?:(?:v=|time_continue=)?(?:([^#\&\?]*)))?(?:\&v=(.*))?(?:.*)/;
+    var regExp = /^.*(?:youtu.be\/|v\/|\/u\/|(?:\bembed\b)|\bwatch\b)(?:\?|\/)(?:(?:\bv=\b|\btime_continue=\b)?(?:([^#\&\?]*)))?(?:\&v=(.*))?(?:.*)/;
     var match = url.match(regExp);
     if (match && !isNaN(match[1]) && extractTime !== true) match[1] = match[2];
     return (match && match[1]) ? match[1] : false;
