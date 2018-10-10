@@ -138,9 +138,11 @@ if (chrome && chrome.webNavigation !== undefined && chrome.webNavigation.onBefor
                     document.querySelectorAll('a').forEach(element => {
                         if(youtube_parser(element.href) !== false) {
                             element.setAttribute('onmousedown', '');
+                            element.setAttribute('jsaction', '');
                             element.setAttribute('data-cthref', 'rykentube:PlayVideo?ID=' + youtube_parser(element.href)); // Screw you google
                             element.setAttribute('href', 'rykentube:PlayVideo?ID=' + youtube_parser(element.href));
                             element.target='';
+                            element.parentNode.replaceChild(element.cloneNode(true), element);
                         }
                     });
                 }
@@ -170,9 +172,11 @@ chrome.tabs.onUpdated.addListener(function(tabId, result, tab) {
                 document.querySelectorAll('a').forEach(element => {
                     if(youtube_parser(element.href) !== false) {
                         element.setAttribute('onmousedown', '');
+                        element.setAttribute('jsaction', '');
                         element.setAttribute('data-cthref', 'rykentube:PlayVideo?ID=' + youtube_parser(element.href)); // Screw you google
                         element.setAttribute('href', 'rykentube:PlayVideo?ID=' + youtube_parser(element.href));
                         element.target='';
+                        element.parentNode.replaceChild(element.cloneNode(true), element);
                     }
                 });
             }
