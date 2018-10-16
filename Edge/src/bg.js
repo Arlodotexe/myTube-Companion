@@ -147,7 +147,9 @@ if (chrome && chrome.webNavigation !== undefined && chrome.webNavigation.onBefor
                     });
                 }
     
-                setInterval(setLinks, 1000);
+                window.addEventListener("load", function(event) { 
+                    if(window.location.hostname.includes('youtube.') == false) setLinks()
+                });
                 `
             });
         }
@@ -171,6 +173,7 @@ chrome.tabs.onUpdated.addListener(function(tabId, result, tab) {
             function setLinks() {
                 document.querySelectorAll('a').forEach(element => {
                     if(youtube_parser(element.href) !== false) {
+                        console.log(element.href, youtube_parser(element.href));
                         element.setAttribute('onmousedown', '');
                         element.setAttribute('jsaction', '');
                         element.setAttribute('data-cthref', 'rykentube:PlayVideo?ID=' + youtube_parser(element.href)); // Screw you google
@@ -181,7 +184,10 @@ chrome.tabs.onUpdated.addListener(function(tabId, result, tab) {
                 });
             }
 
-            setInterval(setLinks, 1000);
+            window.addEventListener("load", function(event) { 
+                console.log(window.location.hostname);
+                if(window.location.hostname.includes('youtube.') == false) setLinks()
+            });
             `
         });
     }
