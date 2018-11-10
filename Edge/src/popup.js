@@ -16,54 +16,25 @@ function getStoredStatus(key, cb) {
     });
 }
 
-function youtube_parser(url, extractTime) {
-    var regExp = /^.*(?:youtu.be\/|v\/|\/u\/\w\/|embed|watch)(?:\?|\/)(?:(?:v=|time_continue=)?(?:([^#\&\?]*)))?(?:\&v=(.*))?(?:.*)/;
-    var match = url.match(regExp);
-    if (match && !isNaN(match[1]) && extractTime !== true) match[1] = match[2];
-    return (match && match[1]) ? match[1] : false;
-}
-
-function youtube_playlist_parser(url) {
-    var regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(list\=))([^#\&\?]*).*/;
-    var match = url.match(regExp);
-    return (match && match[6].length == 34) ? match[6] : false;
-}
-
-function checkUrl(url, tabId, bypass) {
-    getStoredStatus('enabled', enabled => {
-        if ((youtube_parser(url) !== false || youtube_playlist_parser(url) !== false) && (enabled || bypass)) {
-            setTimeout(() => {
-                prevUrl = url;
-                chrome.runtime.sendMessage({ pauseVideo: true, tabId: tabId });
-                chrome.tabs.executeScript(tabId, {
-                    code: `
-                        var toHHMMSS = function (secs) { 
-                             var seconds = parseInt(secs, 10);
-                             var hours   = Math.floor(seconds / 3600);
-                             var minutes = Math.floor((seconds - (hours * 3600)) / 60);
-                             var seconds = seconds - (hours * 3600) - (minutes * 60);
-             
-                             if (hours   < 10) {hours   = "0"+hours;}
-                             if (minutes < 10) {minutes = "0"+minutes;}
-                             if (seconds < 10) {seconds = "0"+seconds;}
-                             var time    = hours+':'+minutes+':'+seconds;
-                             return time;
-                         }
-
-                        time = toHHMMSS(Math.round(document.getElementsByTagName('video')[0].currentTime));
-                        window.location.assign('rykentube:PlayVideo?ID=${youtube_parser(url)}&Position=' + time);
-                    `
-                });
-            }, 500);
-        }
-    });
-}
+// This is a minified copy-paste of the code in bg.js
+const openByUsernameFeatureReleaseDate={"month":12,"day":25,"year":2018};function featureIsDelayed(feature){return new Promise(resolve=>{fetch('http://rykenapps.com/mytube/companion/featureDelays.json').then(res=>res.json()).then((out)=>{if(new Date().getDay()>out['feature'].day-1&&new Date().getMonth()>out['feature'].month-1&&new Date().getFullYear>out['feature'].year-1){resolve(false);}else{resolve(true);}}).catch(err=>{resolve(eval(feature+'FeatureReleaseDate'));console.error('Could not load resource. Using hardcoded fallback data');});});}
+function toHHMMSS(secs){if(secs==undefined||secs==null)return null;let seconds=parseInt(secs,10);let hours=Math.floor(seconds / 3600);let minutes=Math.floor((seconds-(hours*3600))/ 60);seconds=seconds-(hours*3600)-(minutes*60);if(hours<10){hours="0"+hours;}
+if(minutes<10){minutes="0"+minutes;}
+if(seconds<10){seconds="0"+seconds;}
+return hours+':'+minutes+':'+seconds;}
+function isYoutube(url){if(typeof url=='string'){let match=url.match(/^.*(youtube\.[a-z]{0,4})|^.*(youtu\.be)/);return(match&&match[1])?match[1]:null;}else console.error('Incorrect data recieved while checking domain');}
+function hasVideo(url){if(typeof url=='string'){let match=url.match(/^.*(?:v=)([a-zA-Z0-9-_]+)/);return(match&&match[1])?match[1]:null;}else console.error('Incorrect data recieved while checking for video');}
+function hasPlaylist(url){if(typeof url=='string'){let match=url.match(/^.*(?:list=)([a-zA-Z0-9-_]+)/);return(match&&match[1])?match[1]:null;}else console.error('Incorrect data recieved while checking for playlist');}
+function hasTimestamp(url){if(typeof url=='string'){let match=url.match(/^.*(?:\btime_continue=\b|\bt=\b)([0-9]+)/);return(match!==null?toHHMMSS(match[1]):null);}else console.error('Incorrect data recieved while checking for timestamp');}
+async function hasChannel(url){let match=url.match(/^.*(?:youtube\.[a-z]{0,4})(?:\/channel\/)(.{22,})/);if(await featureIsDelayed('openByUsername')==false){match=url.match(/^.*(?:youtube\.[a-z]{0,4})(?:\/channel\/|\/user\/)(.{22,})/);}
+return(match&&match[1])?match[1]:null;}
+function checkUrl(url){if(hasPlaylist(url)!==null){if(hasVideo(url)!==null){if(hasTimestamp(url)!==null){console.info('Playlist, video and timestamp detected. Will use protocol: ');return`rykentube:PlayVideo?ID=${hasVideo(url)}&PlaylistID=${hasPlaylist(url)}&Position=${hasTimestamp(url)}`;}else{console.info('Playlist and video detected. Will use protocol: ');return`rykentube:PlayVideo?ID=${hasVideo(url)}&PlaylistID=${hasPlaylist(url)}`;}}else{console.info('Playlist detected. Will use protocol: ');return`rykentube:Playlist?ID=${hasPlaylist(url)}`;}}else if(hasVideo(url)!==null){if(hasTimestamp(url)!==null){console.info('Video and timestamp detected. Will use protocol:');return`rykentube:PlayVideo?ID=${hasVideo(url)}&Position=${hasTimestamp(url)}`;}else{console.info('Video detected. Will use protocol: \n ');return`rykentube:PlayVideo?ID=${hasVideo(url)}`;}}else if(hasChannel(url)!==null){console.info('Channel detected. Will use protocol: ');return`rykentube:Channel?ID=${hasChannel(url)}`;}else{console.info('This youtube page is not supported by the myTube Companion');return undefined;}}
 
 function checkCurrentTab() {
     chrome.tabs.query({ currentWindow: true, active: true }, function(tab) {
         tab = tab[0];
-        if (youtube_parser(tab.url) !== false || youtube_playlist_parser(tab.url) !== false) {
-            checkUrl(tab.url, tab.id, true);
+        if (isYoutube(tab.url)) {
+            openInApp(tab.url, tab.id, true);
         } else {
             console.log('Not a YouTube link!\n', tab.url);
         }
