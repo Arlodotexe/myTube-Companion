@@ -19,6 +19,11 @@ function featureIsDelayed(feature) {
                 }
             })
             .catch(err => {
+                if (new Date().getDay() > eval(feature + 'FeatureReleaseDate').day - 1 && new Date().getMonth() > eval(feature + 'FeatureReleaseDate').month - 1 && new Date().getFullYear > eval(feature + 'FeatureReleaseDate').year - 1) {
+                    resolve(false);
+                } else {
+                    resolve(true);
+                }
                 resolve(eval(feature + 'FeatureReleaseDate'));
                 console.error('Could not load resource. Using hardcoded fallback data');
             });
