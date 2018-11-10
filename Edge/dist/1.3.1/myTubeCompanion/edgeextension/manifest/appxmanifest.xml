@@ -7,7 +7,7 @@
 	<Identity 
 		Name="32357CharlesFecht.myTubeCompanion" 
 		Publisher="CN=096ED392-EC58-4D03-BD00-08354C0716AD" 
-		Version="2.1.6.0" /> <!-- UPDATE IDENTITY -->
+		Version="2.3.1.0" /> <!-- UPDATE IDENTITY -->
 
 	<Properties> 
 		<DisplayName>myTube! Companion</DisplayName> 
