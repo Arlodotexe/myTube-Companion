@@ -9,7 +9,7 @@ const openByUsernameFeatureReleaseDate = { "month": 12, "day": 25, "year": 2018 
 
 function featureIsDelayed(feature) {
     return new Promise(resolve => {
-        fetch('http://rykenapps.com/mytube/companion/featureDelays.json')
+        fetch('http://rykenapps.com/mytube/companion/featureDelays.txt')
             .then(res => res.json())
             .then((out) => {
                 if (new Date().getDay() > out['feature'].day - 1 && new Date().getMonth() > out['feature'].month - 1 && new Date().getFullYear > out['feature'].year - 1) {
@@ -120,7 +120,7 @@ function openInApp(url, tabId, bypass) {
                     chrome.tabs.executeScript(tabId, {
                         code: `window.location.assign('${rykentubeProtocol}');`
                     }, function() {
-                        if (closeOnSwitch == true) chrome.tabs.remove(tabId);
+                        if (closeOnSwitch == true && isYoutube(url)) chrome.tabs.remove(tabId);
                     });
                 }, 500);
             }
@@ -193,7 +193,7 @@ function getStoredStatus(key, cb) {
 
 if (chrome && chrome.webNavigation !== undefined && chrome.webNavigation.onBeforeNavigate !== undefined) {
     chrome.webNavigation.onBeforeNavigate.addListener((result) => {
-        if (result !== undefined && result.tabId !== undefined) {
+        if (result !== undefined && result.tabId !== undefined && !result.url.includes("chrome://")) {
             chrome.tabs.executeScript(result.tabId, {
                 code: `
                 ${toHHMMSS.toString()}
@@ -235,7 +235,7 @@ if (chrome && chrome.webNavigation !== undefined && chrome.webNavigation.onBefor
 }
 
 chrome.tabs.onUpdated.addListener(function(tabId, result, tab) {
-    if (result && (result.status == "complete" || result.status == "loading") && tabId !== undefined) {
+    if (result && ((result.status == "complete" || result.status == "loading") && !result.url.includes("chrome://")) && tabId !== undefined) {
         chrome.tabs.executeScript(tabId, {
             code: `
             ${toHHMMSS.toString()}
