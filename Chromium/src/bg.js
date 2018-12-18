@@ -12,20 +12,19 @@ function featureIsDelayed(feature) {
         fetch('http://rykenapps.com/mytube/companion/featureDelays.txt')
             .then(res => res.json())
             .then((out) => {
-                if (new Date().getDay() > out['feature'].day - 1 && new Date().getMonth() > out['feature'].month - 1 && new Date().getFullYear > out['feature'].year - 1) {
+                if (new Date().getDay() > out[feature].day - 1 && new Date().getMonth() > out[feature].month - 1 && new Date().getFullYear > out[feature].year - 1) {
                     resolve(false);
                 } else {
                     resolve(true);
                 }
             })
             .catch(err => {
+                console.error('Could not load resource. Using hardcoded fallback data');
                 if (new Date().getDay() > eval(feature + 'FeatureReleaseDate').day - 1 && new Date().getMonth() > eval(feature + 'FeatureReleaseDate').month - 1 && new Date().getFullYear > eval(feature + 'FeatureReleaseDate').year - 1) {
                     resolve(false);
                 } else {
                     resolve(true);
                 }
-                resolve(eval(feature + 'FeatureReleaseDate'));
-                console.error('Could not load resource. Using hardcoded fallback data');
             });
     });
 }
