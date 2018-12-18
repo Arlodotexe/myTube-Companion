@@ -75,7 +75,7 @@ async function hasChannel(url) {
     return (match && match[1]) ? match[1] : null;
 }
 
-function checkUrl(url) {
+async function checkUrl(url) {
     if (hasPlaylist(url) !== null) { // Is a playlist
         if (hasVideo(url) !== null) { // Is a playlist with a video
             if (hasTimestamp(url) !== null) { // Is a playlist with a video and a timestamp
@@ -97,7 +97,7 @@ function checkUrl(url) {
             console.info('Video detected. Will use protocol: \n ');
             return `rykentube:PlayVideo?ID=${hasVideo(url)}`;
         }
-    } else if (hasChannel(url) !== null) { // Is a channel
+    } else if (await hasChannel(url) !== null) { // Is a channel
         console.info('Channel detected. Will use protocol: ');
         return `rykentube:Channel?ID=${hasChannel(url)}`;
     } else {
@@ -107,9 +107,10 @@ function checkUrl(url) {
 }
 
 function openInApp(url, tabId, bypass) {
-    getStoredStatus('enabled', enabled => {
+    getStoredStatus('enabled', async enabled => {
         if ((isYoutube(url) !== null) && bypass !== true && enabled) {
-            let rykentubeProtocol = checkUrl(url, tabId);
+            console.log(url);
+            let rykentubeProtocol = await checkUrl(url);
             if (rykentubeProtocol !== undefined) {
 
                 console.log(rykentubeProtocol);
