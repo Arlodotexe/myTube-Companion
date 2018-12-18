@@ -107,7 +107,7 @@ async function checkUrl(url) {
 
 function openInApp(url, tabId, bypass) {
     getStoredStatus('enabled', async enabled => {
-        if ((isYoutube(url) !== null) && bypass !== true && enabled) {
+        if ((isYoutube(url) !== null) && (bypass == undefined || bypass == true) && enabled) {
             console.log(url);
             let rykentubeProtocol = await checkUrl(url);
             if (rykentubeProtocol !== undefined) {
