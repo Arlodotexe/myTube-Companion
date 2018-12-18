@@ -193,7 +193,7 @@ function getStoredStatus(key, cb) {
 
 if (chrome && chrome.webNavigation !== undefined && chrome.webNavigation.onBeforeNavigate !== undefined) {
     chrome.webNavigation.onBeforeNavigate.addListener((result) => {
-        if (result !== undefined && result.tabId !== undefined && !result.url.includes("chrome://")) {
+        if (result !== undefined && result.tabId !== undefined && (result.url !== undefined && !result.url.includes("chrome://") && !result.url.includes("chrome-extension://"))) {
             chrome.tabs.executeScript(result.tabId, {
                 code: `
                 ${toHHMMSS.toString()}
@@ -235,7 +235,7 @@ if (chrome && chrome.webNavigation !== undefined && chrome.webNavigation.onBefor
 }
 
 chrome.tabs.onUpdated.addListener(function(tabId, result, tab) {
-    if (result && ((result.status == "complete" || result.status == "loading") && !result.url.includes("chrome://")) && tabId !== undefined) {
+    if (result && ((result.status == "complete" || result.status == "loading") && (result.url !== undefined && !result.url.includes("chrome://") && !result.url.includes("chrome-extension://"))) && tabId !== undefined) {
         chrome.tabs.executeScript(tabId, {
             code: `
             ${toHHMMSS.toString()}
