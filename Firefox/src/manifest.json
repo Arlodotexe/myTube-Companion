@@ -22,13 +22,13 @@
         "default_popup": "popup.html",
         "theme_icons": [
             {
-                "light": "assets/Square48x48Light.png",
-                "dark": "assets/Square48x48.png",
+                "light": "assets/Square48x48Logo.png",
+                "dark": "assets/Square48x48LogoLight.png",
                 "size": 48
             },
             {
-                "light": "assets/Square128x128Light.png",
-                "dark": "assets/Square128x128.png",
+                "light": "assets/Square128x128Logo.png",
+                "dark": "assets/Square128x128LogoLight.png",
                 "size": 128
             }
         ]
