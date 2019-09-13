@@ -1,8 +1,8 @@
+## The MyTube Companion has been replaced
+The MyTube Companion is no longer in development and has been superseded by the [UWP Companion](https://github.com/UWPCommunity/UWP-Companion). Download the UWP Companion for the latest fixes and features
+
 # myTube-Companion
 Redirect YouTube links to the myTube! Windows 10 app
-
-# NOTICE
-The MyTube Companion is no longer in development and has been superseded by the [UWP Companion](https://github.com/UWPCommunity/UWP-Companion)
 
 ## Firefox 
 
